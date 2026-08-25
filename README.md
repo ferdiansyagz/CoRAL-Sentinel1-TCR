@@ -122,12 +122,20 @@ CoRAL-Sentinel1-TCR/
 +-- README.md
 ```
 
-- `coral/corner_reflector.py` -- original CoRAL RCS/SCR formulation (unmodified)
-- `coral/dataio.py` -- modified: adds SNAP BEAM-DIMAP (`.dim`) support
-- `coral/cross_exclusion.py` -- new: cross-exclusion clutter window module
-- `RCS_Corner_Reflector_Analysis_CrossExclusion.ipynb` -- main analysis notebook
-- `RCS_Corner_Reflector_Analysis_CrossExclusion_ClutterNormalized.ipynb` -- optional variant with global clutter median normalisation
-- `LICENSE` -- Apache License 2.0
+## Quick Start
+
+1. **Install dependencies**: `pip install numpy rasterio matplotlib pandas jupyter`
+2. **Input data**: this repository reads SNAP BEAM-DIMAP products (`.dim` +
+   `.data` folder). Your Sentinel-1 IW scene must already be processed in
+   SNAP through: **Apply Orbit File -> ThermalNoiseRemoval -> Radiometric
+   Calibration -> TOPSAR-Deburst -> Range-Doppler Terrain Correction**,
+   i.e. an output file named like `..._Orb_tnr_Cal_deb_TC.dim`. Split
+   (single-subswath) products ending in `..._Cal_split_deb_TC.dim` are
+   also supported.
+3. **Open a notebook**, set `DATA_DIR` to the folder containing your
+   `.dim` files, adjust `TARG_WIN_SZ`, `CLT_WIN_SZ`, `CROSS_WIDTH` if
+   needed (defaults follow Garthwaite et al. 2015, Table 4.5 for a 1.5 m
+   C-band TCR), then run all cells.
 
 ## Example Output
 
