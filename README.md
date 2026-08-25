@@ -70,27 +70,81 @@ downstream energy, SCR, and RCS formulas (`calc_total_energy`, `calc_scr`,
 
 ### 3. Global clutter median normalisation (optional)
 
-An optional processing variant (see
-`RCS_Corner_Reflector_Analysis_CrossExclusion_ClutterNormalized.ipynb`)
-additionally computes a single global median of cross-excluded clutter
-pixels (linear sigma-nought domain), pooled across all acquisitions in a
-time series, and subtracts this median from the cross-excluded clutter
-pixels of each individual scene prior to RCS/SCR computation (floored at
-zero to avoid non-physical negative linear values). This is implemented
-entirely from the notebook via a `readdimap` monkey-patch, without modifying
-`coral/dataio.py`. Target-window pixels are never affected by this step.
+An optional processing variant additionally computes a single global median
+of cross-excluded clutter pixels (linear sigma-nought domain), pooled across
+all acquisitions in a time series, and subtracts this median from the
+cross-excluded clutter pixels of each individual scene prior to RCS/SCR
+computation. This is implemented entirely from the notebook via a
+`readdimap` monkey-patch, without modifying `coral/dataio.py`. Target-window
+pixels are never affected by this step.
+
+**Formula.** Let $C = \{c_1, c_2, \dots, c_N\}$ denote the set of all
+cross-excluded clutter pixel values (linear sigma-nought), pooled across
+every acquisition date in the time series. The global clutter median is:
+
+$$M_{\text{clutter}} = \text{median}(C)$$
+
+For each scene, every cross-excluded clutter pixel $c_i$ is then normalised
+as:
+
+$$c_i' = \max(c_i - M_{\text{clutter}},\ 0)$$
+
+i.e. the pooled median is subtracted from each clutter pixel, floored at
+zero to avoid non-physical negative linear-domain values. The normalised
+clutter pixels $c_i'$ replace $c_i$ before entering the standard CoRAL
+energy/SCR/RCS formulas (Garthwaite, 2017, Eq. 7-8) unchanged. Target-window
+pixels are excluded from this operation entirely.
+
+## Which Notebook Should I Use?
+
+| Notebook | Clutter handling | Recommended for |
+|---|---|---|
+| `RCS_Corner_Reflector_Analysis_CrossExclusion.ipynb` | Cross-exclusion window only, no normalisation | Homogeneous, low-clutter areas (e.g. open fields, bare soil, rural sites) where background backscatter is spatially uniform and temporally stable |
+| `RCS_Corner_Reflector_Analysis_CrossExclusion_ClutterNormalized.ipynb` | Cross-exclusion window + global clutter median normalisation | Heterogeneous, high-clutter/noisy urban environments, where background backscatter varies strongly in space and time due to buildings, roads, and mixed land cover |
+
+In general, urban deployments should use the `ClutterNormalized` variant to
+compensate for the elevated and spatially inconsistent clutter typical of
+built-up environments, while rural/homogeneous deployments can use the
+standard `CrossExclusion` notebook without additional normalisation.
 
 ## Repository Structure
 
 ```
 CoRAL-Sentinel1-TCR/
-├── coral/                                              # Library modules (modified/extended)
-├── RCS_Corner_Reflector_Analysis_CrossExclusion.ipynb              # Main analysis notebook
-├── RCS_Corner_Reflector_Analysis_CrossExclusion_ClutterNormalized.ipynb  # Optional variant w/ global clutter normalisation
-├── LICENSE                                             # Apache License 2.0
-├── .gitignore
-└── README.md
+|-- coral/
+|   |-- corner_reflector.py
+|   |-- dataio.py
+|   +-- cross_exclusion.py
+|-- RCS_Corner_Reflector_Analysis_CrossExclusion.ipynb
+|-- RCS_Corner_Reflector_Analysis_CrossExclusion_ClutterNormalized.ipynb
+|-- LICENSE
+|-- .gitignore
++-- README.md
 ```
+
+- `coral/corner_reflector.py` -- original CoRAL RCS/SCR formulation (unmodified)
+- `coral/dataio.py` -- modified: adds SNAP BEAM-DIMAP (`.dim`) support
+- `coral/cross_exclusion.py` -- new: cross-exclusion clutter window module
+- `RCS_Corner_Reflector_Analysis_CrossExclusion.ipynb` -- main analysis notebook
+- `RCS_Corner_Reflector_Analysis_CrossExclusion_ClutterNormalized.ipynb` -- optional variant with global clutter median normalisation
+- `LICENSE` -- Apache License 2.0
+
+## Example Output
+
+Mean intensity images around the TCR with RCS and SCR annotated per
+acquisition date, generated using the cross-exclusion clutter window.
+
+### Urban site example (with global clutter median normalisation)
+
+The example below was processed with
+`RCS_Corner_Reflector_Analysis_CrossExclusion_ClutterNormalized.ipynb`,
+applied to a TCR deployed in a heterogeneous urban environment at
+**Institut Teknologi Sepuluh Nopember (ITS), Surabaya, Indonesia**. Global
+clutter median normalisation was used here specifically to compensate for
+the elevated and spatially inconsistent background backscatter typical of
+a dense urban setting (buildings, roads, mixed land cover).
+
+![RCS/SCR grid - ITS Surabaya urban site, clutter-normalised](./RCSdsc.png)
 
 ## License
 
