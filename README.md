@@ -48,7 +48,15 @@ ESA SNAP after radiometric calibration and terrain correction — including:
   (`split`) Sentinel-1 IW products;
 - incidence-angle extraction from either a full-resolution raster band
   (Terrain-Corrected products) or a tie-point grid with bilinear
-  interpolation (non-Terrain-Corrected products);
+  interpolation (non-Terrain-Corrected products). **Note:** if SNAP's
+  Terrain Correction step is run with its default settings (no
+  additional output band selected), the incidence-angle band it
+  generates -- and that this code reads -- is the
+  **incidenceAngleFromEllipsoid**, not the local incidence angle. If you
+  need the local (DEM-based) incidence angle instead, tick that option
+  under "Additional Output Parameters" in the Terrain Correction
+  operator before running SNAP, and the same raster-band logic here will
+  pick it up automatically;
 - range/azimuth pixel spacing extraction from BEAM-DIMAP
   Abstracted_Metadata, ensuring the RCS illuminated-area term
   (Garthwaite, 2017, Eq. 2) is computed from the true, scene-specific
@@ -95,6 +103,30 @@ clutter pixels $c_i'$ replace $c_i$ before entering the standard CoRAL
 energy/SCR/RCS formulas (Garthwaite, 2017, Eq. 7-8) unchanged. Target-window
 pixels are excluded from this operation entirely.
 
+## Target Localisation (Peak Search)
+
+The notebook does not assume the TCR sits at a fixed pixel. Instead, it
+locates the TCR automatically for every scene, to account for the
+sub-pixel geometric shift introduced by geocoding/terrain correction:
+
+1. The TCR's surveyed static GPS coordinate (UTM easting/northing) is
+   converted to geographic longitude/latitude.
+2. A small search radius (`SEARCH_RADIUS_M`, default 50 m) is defined
+   around that point.
+3. Within that search radius, the pixel with the **maximum sigma-nought
+   (linear) value** is located -- this is the "peak" pixel.
+4. That peak pixel position (not the raw GPS-derived pixel) is used as
+   the target centre for the target/clutter window in Section 4.1.1.
+
+This is necessary because the GPS coordinate marks the TCR's true
+ground position, but geocoding/terrain-correction errors (and orbital
+geometry differences between scenes) can shift the corresponding pixel
+location by a few pixels from scene to scene. Searching for the local
+sigma0 peak around the known coordinate -- rather than using a single
+fixed pixel index for every date -- ensures the target window is always
+centred on the TCR's actual impulse response, prior to any RCS
+computation.
+
 ## Which Notebook Should I Use?
 
 | Notebook | Clutter handling | Recommended for |
@@ -102,10 +134,8 @@ pixels are excluded from this operation entirely.
 | `RCS_Corner_Reflector_Analysis_CrossExclusion.ipynb` | Cross-exclusion window only, no normalisation | Homogeneous, low-clutter areas (e.g. open fields, bare soil, rural sites) where background backscatter is spatially uniform and temporally stable |
 | `RCS_Corner_Reflector_Analysis_CrossExclusion_ClutterNormalized.ipynb` | Cross-exclusion window + global clutter median normalisation | Heterogeneous, high-clutter/noisy urban environments, where background backscatter varies strongly in space and time due to buildings, roads, and mixed land cover |
 
-In general, urban deployments should use the `ClutterNormalized` variant to
-compensate for the elevated and spatially inconsistent clutter typical of
-built-up environments, while rural/homogeneous deployments can use the
-standard `CrossExclusion` notebook without additional normalisation.
+In general, use `ClutterNormalized` for urban/built-up sites and the
+standard `CrossExclusion` notebook for rural/homogeneous sites.
 
 ## Repository Structure
 
@@ -132,10 +162,10 @@ CoRAL-Sentinel1-TCR/
    i.e. an output file named like `..._Orb_tnr_Cal_deb_TC.dim`. Split
    (single-subswath) products ending in `..._Cal_split_deb_TC.dim` are
    also supported.
-3. **Open a notebook**, set `DATA_DIR` to the folder containing your
-   `.dim` files, adjust `TARG_WIN_SZ`, `CLT_WIN_SZ`, `CROSS_WIDTH` if
-   needed (defaults follow Garthwaite et al. 2015, Table 4.5 for a 1.5 m
-   C-band TCR), then run all cells.
+3. **Open a notebook**, set `DATA_DIR` to your `.dim` folder, adjust
+   `TARG_WIN_SZ`, `CLT_WIN_SZ`, `CROSS_WIDTH` if needed (defaults follow
+   Garthwaite et al. 2015, Table 4.5 for a 1.5 m C-band TCR), then run
+   all cells.
 
 ## Example Output
 
