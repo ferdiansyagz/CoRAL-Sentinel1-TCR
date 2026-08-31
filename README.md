@@ -48,15 +48,14 @@ ESA SNAP after radiometric calibration and terrain correction — including:
   (`split`) Sentinel-1 IW products;
 - incidence-angle extraction from either a full-resolution raster band
   (Terrain-Corrected products) or a tie-point grid with bilinear
-  interpolation (non-Terrain-Corrected products). **Note:** if SNAP's
-  Terrain Correction step is run with its default settings (no
-  additional output band selected), the incidence-angle band it
-  generates -- and that this code reads -- is the
-  **incidenceAngleFromEllipsoid**, not the local incidence angle. If you
-  need the local (DEM-based) incidence angle instead, tick that option
-  under "Additional Output Parameters" in the Terrain Correction
-  operator before running SNAP, and the same raster-band logic here will
-  pick it up automatically;
+  interpolation (non-Terrain-Corrected products). **Note:** SNAP's
+  Terrain Correction step requires selecting which incidence-angle
+  output to generate under "Additional Output Parameters" --
+  `incidenceAngleFromEllipsoid` (ellipsoid-referenced) or
+  `localIncidenceAngle` (DEM-referenced, corrected for the EGM96 geoid).
+  This project uses the **local incidence angle (EGM96)**, so that
+  option must be ticked in SNAP before processing; the same raster-band
+  logic here picks up whichever band is present automatically;
 - range/azimuth pixel spacing extraction from BEAM-DIMAP
   Abstracted_Metadata, ensuring the RCS illuminated-area term
   (Garthwaite, 2017, Eq. 2) is computed from the true, scene-specific
